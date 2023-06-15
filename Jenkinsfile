@@ -4,25 +4,34 @@ pipeline {
     stage('verify supported software') {
       steps {
         sh '''
-         java -version
+          java -version
          docker version
         '''
       }
     }
- stage('Clean Docker remove all images and containers') {
+
+    stage('Maven build') {
       steps {
-        echo 'Clean docker : remove all the images'
         sh 'docker system prune -a --volumes -f'
-        sh 'docker ps -a'
-      }
-    }
-    stage('Maven build + Build docker compose build') {
-      steps {
-        echo 'Build docker : using docker compose multiple microservices'
         sh './scripts/run_all.sh'
+       
       }
     }
 
+    stage('Build docker') {
+      steps {
+        sh 'docker compose up -d --no-color --wait'
+        sh 'docker compose ps'
+      }
+    }
+
+    stage('Push docker images to DockerHub') {
+      steps {
+        echo 'Push docker images to DockerHub : using docker compose multiple microservices'
+      }
+    }
+
+  
     stage('Run tests against the container') {
       steps {
         echo 'Test should be applied after the deployment on the different servers'
@@ -39,19 +48,16 @@ pipeline {
         sh 'curl -Is http://localhost:9090 | head -n 1'
         echo 'Grafana Dashboards - http://localhost:3000'
         sh 'curl -Is http://localhost:3000 | head -n 1'
-        echo 'Prometheus - http://localhost:9091'
-        sh 'curl -Is http://localhost:9091 | head -n 1'
+        
       }
     }
 
-    stage('Deploiement en dev') {
-      environment {
-        KUBECONFIG = credentials('config')
-      }
+  stage('Deploiement en develop') {
+     
       steps {
         script {
           echo 'Created only one docker compose to default for docker environment'
-         
+         sh 'sleep 50'
         }
 
       }
